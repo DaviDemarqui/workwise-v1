@@ -1,0 +1,14 @@
+{
+  "name": "workwise-v1",
+  "version": "1.0.0",
+  "description": "workwise contract v1",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "DaviDemarqui",
+  "license": "ISC",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0"
+  }
+}
