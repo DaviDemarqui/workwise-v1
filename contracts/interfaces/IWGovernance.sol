@@ -1,7 +1,86 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.24;
 
+import {Proposal} from "types/Proposal.sol";
 
 contract IWGovernance {
-    
+
+    event joinedDao (
+        address indexed member
+    );
+
+    event leavedDao (
+        address indexed member
+    );
+
+    event proposalCreated (
+        address indexed creator,
+        Proposal proposal;
+    );
+
+    event proposalVoted (
+        address indexed voter,
+        Proposal proposal
+    );
+
+    event proposalAccepted (
+        Proposal proposal
+    );
+
+    event proposalRefused (
+        Proposal proposal
+    );    
+
+    /* 
+        The next events are for proposal results;
+    */
+
+    event feeRateChanged (
+        uint256 newFee,
+        Proposal proposal
+    );
+
+    event jobCategoryUpdated(
+        string newCategory,
+        string[] updatedCatList
+    );
+
+    event skillsUpdated(
+        string newSkill,
+        string[] updateSkillList
+    )
+
+    //@notice: When the requirements to become a member changes;
+    event membershipReqChanged (
+        uint256 currentFee,
+        uint256 stakingReq
+    );
+
+    //@notice: if the user is already a member
+    error alreadyJoined();
+    //@notice: if the user is not in the member list
+    error memberDoestExist();
+    //@notice: if the proposal already exists
+    error proposalExistent();
+    //@notice: if the member already voted
+    error alreadyVoted();
+    //@notice: if the proposal is already accepted
+    error alreadyAccepted();
+    //@notice: if the proposal is aleary refused
+    error alreadyRefused();
+
+    function joinGovernance(address _currency, uint256 _amount) external;
+
+    function leaveGovernance() external;
+
+    function createProposal(Proposal _proposal) external;
+
+    function voteForProposal() external;
+
+    function updateFeeRate(uint256 _newFee) internal;
+
+    function updateJobCategories(string memory newCat) internal;
+
+    function updateSkills(string memory newSkill) internal;
+
 }
