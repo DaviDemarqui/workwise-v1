@@ -1,25 +1,26 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.24;
 
-import {Proposal} from "types/Proposal.sol";
+import {Proposal} from "contracts/types/Proposal.sol";
+import {Member} from "contracts/types/Member.sol";
 
 contract IWGovernance {
 
     event joinedDao (
-        address indexed member
+        Member indexed member
     );
 
     event leavedDao (
-        address indexed member
+        Member indexed member
     );
 
     event proposalCreated (
-        address indexed creator,
-        Proposal proposal;
+        Member indexed creator,
+        Proposal proposal
     );
 
     event proposalVoted (
-        address indexed voter,
+        Member indexed voter,
         Proposal proposal
     );
 
@@ -48,11 +49,10 @@ contract IWGovernance {
     event skillsUpdated(
         string newSkill,
         string[] updateSkillList
-    )
+    );
 
     //@notice: When the requirements to become a member changes;
     event membershipReqChanged (
-        uint256 currentFee,
         uint256 stakingReq
     );
 
@@ -69,7 +69,7 @@ contract IWGovernance {
     //@notice: if the proposal is aleary refused
     error alreadyRefused();
 
-    function joinGovernance(address _currency, uint256 _amount) external;
+    function joinGovernance() external;
 
     function leaveGovernance() external;
 
@@ -79,8 +79,10 @@ contract IWGovernance {
 
     function updateFeeRate(uint256 _newFee) internal;
 
-    function updateJobCategories(string memory newCat) internal;
+    function updateJobCategories(string memory _newCat) internal;
 
-    function updateSkills(string memory newSkill) internal;
+    function updateSkills(string memory _newSkill) internal;
+
+    function remInactiveMember(address member) internal;
 
 }
