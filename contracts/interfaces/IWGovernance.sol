@@ -57,17 +57,17 @@ contract IWGovernance {
     );
 
     //@notice: if the user is already a member
-    error alreadyJoined();
+    error AlreadyJoined();
     //@notice: if the user is not in the member list
-    error memberDoestExist();
+    error MemberDoestExist();
     //@notice: if the proposal already exists
-    error proposalExistent();
+    error ProposalExistent();
     //@notice: if the member already voted
-    error alreadyVoted();
+    error AlreadyVoted();
     //@notice: if the proposal is already accepted
-    error alreadyAccepted();
+    error AlreadyAccepted();
     //@notice: if the proposal is aleary refused
-    error alreadyRefused();
+    error AlreadyRefused();
 
     function joinGovernance() external;
 

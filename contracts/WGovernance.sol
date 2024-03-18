@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Member} from "contracts/types/Member.sol";
-import {Proposal} from "contracts/types/Proposal.sol";
+import {Proposal, ProposalType} from "contracts/types/Proposal.sol";
 import {IWGovernance} from "contracts/interfaces/IWGovernance.sol";
 
 contract WGovernance is IWGovernance {
@@ -14,7 +14,6 @@ contract WGovernance is IWGovernance {
     mapping (address => Proposal) proposals;
     mapping (address => uint256) lastVote;
     mapping (address => uint256) govReserve;
-    mapping (address => bool) public isTransferring;
 
     /* 
         What we need in Governance:
@@ -35,25 +34,66 @@ contract WGovernance is IWGovernance {
     */
 
     //@inheritdoc: IWGovernance
-    function joinGovernance() payable {
+    function joinGovernance() external payable {
+
         require(msg.value == stakingReq, "Invalid Ammount");
-        require(msg.sender == members[msg.sender].memberAddress, "The address is not from a member");
+
+        if (msg.sender == members[msg.sender].memberAddress) {
+            revert AlreadyJoined();
+        }
 
         Member newMember = Member(msg.sender, msg.value);
         members[msg.sender] = newMember;
+
+        //@inheritdoc: IWGovernance
+        emit joinedDao();
     }
 
-    // function leaveGovernance() {
-    //     require(msg.sender == members[msg.sender].memberAddress, "The address is not from a member");
-    //     require(payable(msg.sender).transfer(members[msg.sender].amountStk), "delete here")
+    //@inheritdoc: IWGovernance
+    function leaveGovernance() external {
 
-    //     require(members[msg.sender].amountStk >= msg.value, "Insufficient balance");
-    //     require(!isTransferring[msg.sender], "Transfer in progress");
+        require(members[msg.sender].amountStk > msg.value, "Insufficient balance");
 
-    //     isTransferring[msg.sender] = true;
+        if (msg.sender == members[msg.sender].memberAddress) {
+            revert MemberDoestExist();
+        }
 
-    //     uint256 amountToTransfer = msg.value;
-    // }
+        uint256 amountToTransfer = members[msg.sender].amountStk;
+
+        delete members[msg.sender];
+        payable(msg.sender).transfer(amountToTransfer);
+
+        //@inheritdoc: IWGovernance
+        emit leavedDao();
+    }
+
+    /* 
+        TODO - Build the logic for the how the conclusion fo the Proposal is goint to work
+        ex: how to fill the data accordingly to the ProposalType and validate it;
+        Also decide if the member will be able to create more than on proposal;
+    */
+    function createProposal(ProposalType _proposalType, uint256 _votingPeriod) public {
+        require(_votingPeriod > 0, "Voting period must be greater than 0");
+        require(
+            _proposalType == ProposalType.MemberRem ||
+            _proposalType == ProposalType.FeeUpdate ||
+            _proposalType == ProposalType.StkUpdate ||
+            _proposalType == ProposalType.CategUpdate ||
+            _proposalType == ProposalType.SkillsUpdate, 
+        "Invalid proposal type");
+
+        uint256 endTime = block.timestamp + _votingPeriod;
+
+        Proposal memory newProposal = Proposal({
+            creator: msg.sender,
+            voters: [],
+            ProposalType: _proposalType,
+            votingPeriod: _votingPeriod,
+            startTime: block.timestamp
+        });
+
+        proposals[msg.sender] = newProposal;
+    }
 
 
 
