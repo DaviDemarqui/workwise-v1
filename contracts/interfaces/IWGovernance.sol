@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.24;
 
+import {ProposalType} from "contracts/types/Proposal.sol";
 import {Proposal} from "contracts/types/Proposal.sol";
 import {Member} from "contracts/types/Member.sol";
 
-contract IWGovernance {
+abstract contract IWGovernance {
 
     event joinedDao (
         Member indexed member
@@ -31,10 +32,6 @@ contract IWGovernance {
     event proposalRefused (
         Proposal proposal
     );    
-
-    /* 
-        The next events are for proposal results;
-    */
 
     event feeRateChanged (
         uint256 newFee,
@@ -69,20 +66,24 @@ contract IWGovernance {
     //@notice: if the proposal is aleary refused
     error AlreadyRefused();
 
-    function joinGovernance() external;
+    function joinGovernance() payable external virtual;
 
-    function leaveGovernance() external;
+    function leaveGovernance() external virtual;
 
-    function createProposal(Proposal _proposal) external;
+    function createProposal(ProposalType _proposalType, uint256 _votingPeriod,
+        address _memberRem, uint256 _feeUpdate, uint256 _stkUpdate, string memory _categUpdate,
+        string memory _skillUpdate) external virtual;
 
-    function voteForProposal() external;
+    function voteForProposal(bytes32 _proposalId) external virtual;
 
-    function updateFeeRate(uint256 _newFee) internal;
+    function completeProposal(bytes32 _proposalId) external virtual;
 
-    function updateJobCategories(string memory _newCat) internal;
+    function updateFeeRate(uint256 _newFee) internal virtual;
 
-    function updateSkills(string memory _newSkill) internal;
+    function updateJobCategories(string memory _newCat) internal virtual;
 
-    function remInactiveMember(address member) internal;
+    function updateSkills(string memory _newSkill) internal virtual;
+
+    function remInactiveMember(address _member) internal virtual;
 
 }
