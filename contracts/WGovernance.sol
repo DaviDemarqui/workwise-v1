@@ -16,10 +16,10 @@ contract WGovernance is IWGovernance {
     mapping(address => uint256) lastVote;
     mapping(address => uint256) govReserve;
 
-    modifier validateNewVoter(bytes32 proposalId) {
+    modifier validateNewVoter(bytes32 _proposalId) {
         // TODO - Also validate if all the members
         // already voted;
-        require(!hasVoted(proposalId, msg.sender),
+        require(!hasVoted(_proposalId, msg.sender),
         "Already voted to this proposal.");
     }
 
@@ -138,7 +138,14 @@ contract WGovernance is IWGovernance {
 
     // @inheritdoc: IWGovernance
     // @param _newFee will be the current fee rate through jobs payments
-    function updateFeeRate(uint256 _newFee) internal virtual override {}
+    function updateFeeRate(uint256 _newFee) internal virtual override {
+        require(_newFee != 0, "The fee cannot be 0");
+        currentFee = _newFee;
+    }
+
+    //TODO - To update the job categories and the skills, first check
+    // where these mappings are going to be located since they are going
+    // to be used in other contracts. 
 
     // @inheritdoc: IWGovernance
     // @param _newCat indicated the new categorie that is about to be created
@@ -152,7 +159,12 @@ contract WGovernance is IWGovernance {
 
     // @inheritdoc: IWGovernance
     // @param _member indicates the member that is about to be removed from the governance
-    function remInactiveMember(address _member) internal virtual override {}
+    function remInactiveMember(address _member) internal virtual override {
+        uint256 amountStk = members[_member].amountStk;
+        delete members[_member];
+
+        payable(_member).transfer(amountStk);
+    }
 
     // @param _member will be used to generate a unique id for the Proposal
     // @notice using the address of the sender and the blockhash to generate
