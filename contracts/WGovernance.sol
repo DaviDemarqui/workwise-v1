@@ -6,13 +6,22 @@ import {Proposal, ProposalType} from "contracts/types/Proposal.sol";
 import {IWGovernance} from "contracts/interfaces/IWGovernance.sol";
 
 contract WGovernance is IWGovernance {
+
     uint256 currentFee;
     uint256 stakingReq;
+    uint256 membersCount;
 
     mapping(address => Member) members;
     mapping(bytes32 => Proposal) proposals;
     mapping(address => uint256) lastVote;
     mapping(address => uint256) govReserve;
+
+    modifier validateNewVoter(bytes32 proposalId) {
+        // TODO - Also validate if all the members
+        // already voted;
+        require(!hasVoted(proposalId, msg.sender),
+        "Already voted to this proposal.");
+    }
 
     // @inheritdoc: IWGovernance
     function joinGovernance() external payable override {
@@ -24,6 +33,8 @@ contract WGovernance is IWGovernance {
 
         Member memory newMember = Member(msg.sender, msg.value);
         members[msg.sender] = newMember;
+
+        membersCount++;
 
         // @inheritdoc: IWGovernance
         emit joinedDao(members[msg.sender]);
@@ -107,13 +118,19 @@ contract WGovernance is IWGovernance {
     }
 
     // @inheritdoc: IWGovernance
-    function voteForProposal(bytes32 _proposalId) external virtual override {
+    // @param _proposalId is used to find the Proposal and also validade if
+    // the sender already voted to the chosen proposal.
+    function voteForProposal(bytes32 _proposalId) external validateNewVoter(_proposalId) virtual override {
+        require(
+            members[msg.sender].memberAddress != address(0), 
+            "Sender is not a Governance member"
+        );
         require(
             proposals[_proposalId].creator != msg.sender,
             "The creator of the proposal can't vote"
         );
-        // TODO - Verify the if the member already voted
-        // before continue.
+
+        proposals[_proposalId].voters.push(msg.sender);
     }
 
     // @inheritdoc: IWGovernance
@@ -148,6 +165,20 @@ contract WGovernance is IWGovernance {
             generatePropId();
         }
         return gId;
+    }
+
+    // @notice this function is used to validate if the voter has already voted
+    // for that specific proposal. 
+    // @param _proposalId will be reponsable to find the Proposal in the mapping.
+    // @param _voter is the voter to be validated.
+    function hasVoted(bytes32 _proposalId, address _voter) internal view returns (bool) {
+        address[] memory voters = proposals[_proposalId].voters;
+        for (uint256 i = 0; i < voters.length; i++) {
+            if (voters[i] == _voter){
+                return true;
+            }
+        }
+        return false;
     }
 
 }
