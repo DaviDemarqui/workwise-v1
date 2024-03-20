@@ -21,6 +21,7 @@ contract WGovernance is IWGovernance {
         // already voted;
         require(!hasVoted(_proposalId, msg.sender),
         "Already voted to this proposal.");
+        _;
     }
 
     // @inheritdoc: IWGovernance
