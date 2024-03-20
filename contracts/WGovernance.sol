@@ -21,6 +21,8 @@ contract WGovernance is IWGovernance {
         // already voted;
         require(!hasVoted(_proposalId, msg.sender),
         "Already voted to this proposal.");
+        require(proposals[_proposalId].voters.length < membersCount,
+        "All the members have voted");
         _;
     }
 
@@ -83,8 +85,6 @@ contract WGovernance is IWGovernance {
             "Invalid proposal type"
         );
 
-        // TODO - Find a way to dynamically atribute the value
-        // depending on the @param _proposalType;
         address[] memory initialVoters;
         Proposal memory newProposal = Proposal({
             id: generatePropId(),
@@ -134,6 +134,8 @@ contract WGovernance is IWGovernance {
         proposals[_proposalId].voters.push(msg.sender);
     }
 
+    // TODO - Check what's the best way to complete the Proposal and made the
+    // changes in the contract accordingly. 
     // @inheritdoc: IWGovernance
     function completeProposal(bytes32 _proposalId) external virtual override {}
 
@@ -147,6 +149,8 @@ contract WGovernance is IWGovernance {
     //TODO - To update the job categories and the skills, first check
     // where these mappings are going to be located since they are going
     // to be used in other contracts. 
+
+    // ----------------------------------------------------------------------
 
     // @inheritdoc: IWGovernance
     // @param _newCat indicated the new categorie that is about to be created
