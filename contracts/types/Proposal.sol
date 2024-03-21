@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.24;
 
+import {Vote} from "/contracts/types/Vote.sol";
+
 enum ProposalType {
     MemberRem,
     FeeUpdate,
@@ -12,7 +14,7 @@ enum ProposalType {
 struct Proposal {
     bytes32 id;
     address creator;
-    address[] voters; // Also used to count votes;
+    Vote[] voters; // Also used to count votes;
     ProposalType proposaType;
     uint256 votingPeriod;
     uint256 startingPeriod;

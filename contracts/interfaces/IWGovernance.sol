@@ -5,7 +5,7 @@ import {ProposalType} from "contracts/types/Proposal.sol";
 import {Proposal} from "contracts/types/Proposal.sol";
 import {Member} from "contracts/types/Member.sol";
 
-abstract contract IWGovernance {
+interface IWGovernance {
 
     event joinedDao (
         Member indexed member
@@ -53,18 +53,10 @@ abstract contract IWGovernance {
         uint256 stakingReq
     );
 
-    //@notice: if the user is already a member
     error AlreadyJoined();
-    //@notice: if the user is not in the member list
     error MemberDoestExist();
-    //@notice: if the proposal already exists
     error ProposalExistent();
-    //@notice: if the member already voted
     error AlreadyVoted();
-    //@notice: if the proposal is already accepted
-    error AlreadyAccepted();
-    //@notice: if the proposal is aleary refused
-    error AlreadyRefused();
 
     function joinGovernance() payable external virtual;
 
@@ -80,10 +72,12 @@ abstract contract IWGovernance {
 
     function updateFeeRate(uint256 _newFee) internal virtual;
 
+    function updateStakeReq(uint256 _newStk) internal virtual;
+
     function updateJobCategories(string memory _newCat) internal virtual;
 
     function updateSkills(string memory _newSkill) internal virtual;
 
-    function remInactiveMember(address _member) internal virtual;
+    function removeMember(address _member) internal virtual;
 
 }

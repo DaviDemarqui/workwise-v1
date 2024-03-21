@@ -8,31 +8,54 @@ import {IWGovernance} from "contracts/interfaces/IWGovernance.sol";
 contract WGovernance is IWGovernance {
 
     uint256 currentFee;
-    uint256 stakingReq;
+    uint256 requiredStake;
     uint256 membersCount;
+    uint256 govReserve;
 
     mapping(address => Member) members;
     mapping(bytes32 => Proposal) proposals;
-    mapping(address => uint256) lastVote;
-    mapping(address => uint256) govReserve;
 
+    constructor(
+        _currentFee,
+        _requiredStake,
+        _membersCount,
+        _govReserve
+    ) {
+        currentFee = _currentFee;
+        requiredStake = _requiredStake;
+        membersCount = _membersCount;
+        govReserve = _govReserve; 
+
+        members[msg.sender] = Member(msg.sender, msg.value);
+    }
+
+    // @param _proposalId inform what proposal we're working
+    // with to find it in the mapping.
+    // @notice this modifier is used to validate if the user
+    // already voted to the informed proposal and if all
+    // the members already voted.
     modifier validateNewVoter(bytes32 _proposalId) {
-        // TODO - Also validate if all the members
-        // already voted;
+
         require(!hasVoted(_proposalId, msg.sender),
         "Already voted to this proposal.");
         require(proposals[_proposalId].voters.length < membersCount,
         "All the members have voted");
         _;
+
+        if (proposals[_proposalId].voters.length == membersCount) {
+            completeProposal(_proposalId);
+        }
     }
 
     // @inheritdoc: IWGovernance
     function joinGovernance() external payable override {
-        require(msg.value == stakingReq, "Invalid Ammount");
+        require(msg.value <= requiredStake, "Invalid Ammount");
 
         if (msg.sender == members[msg.sender].memberAddress) {
             revert AlreadyJoined();
         }
+
+        govReserve += requiredStake;
 
         Member memory newMember = Member(msg.sender, msg.value);
         members[msg.sender] = newMember;
@@ -50,7 +73,7 @@ contract WGovernance is IWGovernance {
         }
 
         uint256 amountToTransfer = members[msg.sender].amountStk;
-
+        govReserve -= amountToTransfer;
         // @inheritdoc: IWGovernance
         emit leavedDao(members[msg.sender]);
 
@@ -63,7 +86,7 @@ contract WGovernance is IWGovernance {
     // @param _votingPeriod used to determinate the period and calculate the endingPeriod
     // @param _memberRem indicate the member that will be removed based on the _votingPeriod
     // @param _feeUpdate indicate the new value for currentFee based on the _votingPeriod
-    // @param _stkUpdate indicate the new stakingReq to become a member based on _votingPeriod
+    // @param _stkUpdate indicate the new requiredStake to become a member based on _votingPeriod
     // @param _categUpdate indicate the category to be added based on _votingPeriod
     // @param _skillUpdate indicate the skil to be added based on _votingPeriod
     function createProposal(
@@ -85,7 +108,7 @@ contract WGovernance is IWGovernance {
             "Invalid proposal type"
         );
 
-        address[] memory initialVoters;
+        Vote[] memory initialVoters;
         Proposal memory newProposal = Proposal({
             id: generatePropId(),
             creator: msg.sender,
@@ -121,7 +144,8 @@ contract WGovernance is IWGovernance {
     // @inheritdoc: IWGovernance
     // @param _proposalId is used to find the Proposal and also validade if
     // the sender already voted to the chosen proposal.
-    function voteForProposal(bytes32 _proposalId) external validateNewVoter(_proposalId) virtual override {
+    // @param _vote is used to set the user vote in the Vote struct.
+    function voteForProposal(bytes32 _proposalId, bool _vote) external validateNewVoter(_proposalId) virtual override {
         require(
             members[msg.sender].memberAddress != address(0), 
             "Sender is not a Governance member"
@@ -131,13 +155,50 @@ contract WGovernance is IWGovernance {
             "The creator of the proposal can't vote"
         );
 
-        proposals[_proposalId].voters.push(msg.sender);
+        Vote memory newVote = Vote({
+            member: msg.sender,
+            vote: _vote
+        });
+
+        proposals[_proposalId].voters.push(newVote);
     }
 
-    // TODO - Check what's the best way to complete the Proposal and made the
-    // changes in the contract accordingly. 
     // @inheritdoc: IWGovernance
-    function completeProposal(bytes32 _proposalId) external virtual override {}
+    // @param _proposalId is used to get the proposal and deleted after
+    // the competion of the process.
+    function completeProposal(bytes32 _proposalId) external virtual override {
+        
+        uint256 trueVotes = 0;
+        uint256 falseVotes = 0;
+
+        Proposal memory proposal = proposals[_proposalId];
+        
+        for (uint256 i = 0; i < proposal.voters.length; i++) {
+            if (proposal.voters[i].vote) {
+                trueVotes++;
+            } else {
+                falseVotes++;
+            }
+        }
+
+        if (trueVotes > falseVotes) {
+             if (proposal.proposaType == ProposalType.MemberRem) {
+                removeMember(proposal.memberRem);
+            } else if (proposal.proposaType == ProposalType.FeeUpdate) {
+                updateFeeRate(proposal.feeUpdate);
+            } else if (proposal.proposaType == ProposalType.StkUpdate) {
+                updateStakeReq(proposal.stkUpdate);
+            } else if (proposal.proposaType == ProposalType.CategUpdate) {
+                // TODO - Do the update in the WorkHub.sol
+            } else if (proposal.proposaType == ProposalType.SkillsUpdate) {
+                // TODO - Do the update in the WorkHub.sol
+            }
+            emit proposalAccepted();
+        } else { emit proposalRefused(); }
+        
+        // deleting the proposal after the completion.
+        delete proposals[_proposalId]; 
+    }
 
     // @inheritdoc: IWGovernance
     // @param _newFee will be the current fee rate through jobs payments
@@ -146,11 +207,13 @@ contract WGovernance is IWGovernance {
         currentFee = _newFee;
     }
 
-    //TODO - To update the job categories and the skills, first check
-    // where these mappings are going to be located since they are going
-    // to be used in other contracts. 
-
-    // ----------------------------------------------------------------------
+    // @inheritdoc: IWGovernance
+    // @param _newStk will be the current staking requirement for a new
+    // user entrance to the governance membership.
+    function updateStakeReq(uint256 _newStk) internal virtual override {
+        require(_newStk != 0, "The stake cannot be zero");
+        requiredStake = _newStk;
+    }
 
     // @inheritdoc: IWGovernance
     // @param _newCat indicated the new categorie that is about to be created
@@ -164,7 +227,7 @@ contract WGovernance is IWGovernance {
 
     // @inheritdoc: IWGovernance
     // @param _member indicates the member that is about to be removed from the governance
-    function remInactiveMember(address _member) internal virtual override {
+    function removeMember(address _member) internal virtual override {
         uint256 amountStk = members[_member].amountStk;
         delete members[_member];
 
@@ -197,5 +260,10 @@ contract WGovernance is IWGovernance {
         }
         return false;
     }
+
+    // ----------------------------------------------------------------------
+
+    // TODO - Create the functions that are going to update the skills and 
+    // the job categories in the WorkHub.sol above.
 
 }
