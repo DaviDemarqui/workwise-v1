@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.24;
 
-import {Vote} from "/contracts/types/Vote.sol";
+import {Vote} from "contracts/types/Vote.sol";
 
 enum ProposalType {
     MemberRem,

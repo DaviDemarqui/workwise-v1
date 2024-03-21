@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Member} from "contracts/types/Member.sol";
+import {Vote} from "contracts/types/Vote.sol";
 import {Proposal, ProposalType} from "contracts/types/Proposal.sol";
 import {IWGovernance} from "contracts/interfaces/IWGovernance.sol";
 
@@ -16,11 +17,11 @@ contract WGovernance is IWGovernance {
     mapping(bytes32 => Proposal) proposals;
 
     constructor(
-        _currentFee,
-        _requiredStake,
-        _membersCount,
-        _govReserve
-    ) {
+        uint256 _currentFee,
+        uint256 _requiredStake,
+        uint256 _membersCount,
+        uint256 _govReserve
+    ) payable {
         currentFee = _currentFee;
         requiredStake = _requiredStake;
         membersCount = _membersCount;
@@ -41,10 +42,6 @@ contract WGovernance is IWGovernance {
         require(proposals[_proposalId].voters.length < membersCount,
         "All the members have voted");
         _;
-
-        if (proposals[_proposalId].voters.length == membersCount) {
-            completeProposal(_proposalId);
-        }
     }
 
     // @inheritdoc: IWGovernance
@@ -145,7 +142,7 @@ contract WGovernance is IWGovernance {
     // @param _proposalId is used to find the Proposal and also validade if
     // the sender already voted to the chosen proposal.
     // @param _vote is used to set the user vote in the Vote struct.
-    function voteForProposal(bytes32 _proposalId, bool _vote) external validateNewVoter(_proposalId) virtual override {
+    function voteForProposal(bytes32 _proposalId, bool _vote) external virtual override validateNewVoter(_proposalId) {
         require(
             members[msg.sender].memberAddress != address(0), 
             "Sender is not a Governance member"
@@ -161,12 +158,16 @@ contract WGovernance is IWGovernance {
         });
 
         proposals[_proposalId].voters.push(newVote);
+
+        if (proposals[_proposalId].voters.length == membersCount) {
+            completeProposal(_proposalId);
+        }
     }
 
     // @inheritdoc: IWGovernance
     // @param _proposalId is used to get the proposal and deleted after
     // the competion of the process.
-    function completeProposal(bytes32 _proposalId) external virtual override {
+    function completeProposal(bytes32 _proposalId) public virtual override {
         
         uint256 trueVotes = 0;
         uint256 falseVotes = 0;
@@ -193,8 +194,8 @@ contract WGovernance is IWGovernance {
             } else if (proposal.proposaType == ProposalType.SkillsUpdate) {
                 // TODO - Do the update in the WorkHub.sol
             }
-            emit proposalAccepted();
-        } else { emit proposalRefused(); }
+            emit proposalAccepted(proposal);
+        } else { emit proposalRefused(proposal); }
         
         // deleting the proposal after the completion.
         delete proposals[_proposalId]; 
@@ -202,7 +203,7 @@ contract WGovernance is IWGovernance {
 
     // @inheritdoc: IWGovernance
     // @param _newFee will be the current fee rate through jobs payments
-    function updateFeeRate(uint256 _newFee) internal virtual override {
+    function updateFeeRate(uint256 _newFee) internal virtual {
         require(_newFee != 0, "The fee cannot be 0");
         currentFee = _newFee;
     }
@@ -210,7 +211,7 @@ contract WGovernance is IWGovernance {
     // @inheritdoc: IWGovernance
     // @param _newStk will be the current staking requirement for a new
     // user entrance to the governance membership.
-    function updateStakeReq(uint256 _newStk) internal virtual override {
+    function updateStakeReq(uint256 _newStk) internal virtual {
         require(_newStk != 0, "The stake cannot be zero");
         requiredStake = _newStk;
     }
@@ -219,15 +220,15 @@ contract WGovernance is IWGovernance {
     // @param _newCat indicated the new categorie that is about to be created
     function updateJobCategories(
         string memory _newCat
-    ) internal virtual override {}
+    ) internal virtual {}
 
     // @inheritdoc: IWGovernance
     // @param _newSkill indicates the skill that is about to be created
-    function updateSkills(string memory _newSkill) internal virtual override {}
+    function updateSkills(string memory _newSkill) internal virtual {}
 
     // @inheritdoc: IWGovernance
     // @param _member indicates the member that is about to be removed from the governance
-    function removeMember(address _member) internal virtual override {
+    function removeMember(address _member) internal virtual {
         uint256 amountStk = members[_member].amountStk;
         delete members[_member];
 
@@ -252,9 +253,9 @@ contract WGovernance is IWGovernance {
     // @param _proposalId will be reponsable to find the Proposal in the mapping.
     // @param _voter is the voter to be validated.
     function hasVoted(bytes32 _proposalId, address _voter) internal view returns (bool) {
-        address[] memory voters = proposals[_proposalId].voters;
+        Vote[] memory voters = proposals[_proposalId].voters;
         for (uint256 i = 0; i < voters.length; i++) {
-            if (voters[i] == _voter){
+            if (voters[i].member == _voter){
                 return true;
             }
         }

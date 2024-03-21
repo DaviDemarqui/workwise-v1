@@ -58,26 +58,16 @@ interface IWGovernance {
     error ProposalExistent();
     error AlreadyVoted();
 
-    function joinGovernance() payable external virtual;
+    function joinGovernance() payable external;
 
-    function leaveGovernance() external virtual;
+    function leaveGovernance() external;
 
     function createProposal(ProposalType _proposalType, uint256 _votingPeriod,
         address _memberRem, uint256 _feeUpdate, uint256 _stkUpdate, string memory _categUpdate,
-        string memory _skillUpdate) external virtual;
+        string memory _skillUpdate) external;
 
-    function voteForProposal(bytes32 _proposalId) external virtual;
+    function voteForProposal(bytes32 _proposalId, bool _vote) external;
 
-    function completeProposal(bytes32 _proposalId) external virtual;
-
-    function updateFeeRate(uint256 _newFee) internal virtual;
-
-    function updateStakeReq(uint256 _newStk) internal virtual;
-
-    function updateJobCategories(string memory _newCat) internal virtual;
-
-    function updateSkills(string memory _newSkill) internal virtual;
-
-    function removeMember(address _member) internal virtual;
+    function completeProposal(bytes32 _proposalId) external;
 
 }
