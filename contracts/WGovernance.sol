@@ -272,7 +272,19 @@ contract WGovernance is IWGovernance {
 
     // ----------------------------------------------------------------------
 
-    // TODO - Create the functions that are going to update the skills and 
-    // the job categories in the WorkHub.sol above.
+    // The functions below are going to update the arrays of "jobCategories"
+    // and "availableSkills" in the WorkHub.sol contract.
+
+    // @param _newJobCategory is the string that will be added to the array
+    // of job  category in the WorkHub contract.
+    function updateWorkHubJobs(string memory _newJobCategory) internal {
+
+    }
+
+    // @param _newSkill will be added to the array of skills in the
+    // WorkHub contract.
+    function updateWorkHubSkills(string memory _newSkill) internal {
+
+    }
 
 }
