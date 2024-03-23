@@ -59,21 +59,28 @@ contract WorkHub is IWorkHub {
     // array.
     // @notice this function is being used in functions that use arrays
     // to find the index of an item by it's name.
-    function findItemIndex(string memory _item, string[] memory _itemList) internal pure returns (uint256) {
+    function findItemIndex(string memory _item, string[] memory _itemList) internal pure returns (uint256 index) {
         for(uint256 i = 0; i < _itemList.length; i++) {
             if(keccak256(bytes(_itemList[i])) == keccak256(bytes(_item))) {
-                return i;
+                index = i;
+                break;
             }
         }
+        
+        return index;
     }
 
-    function checkIfPresent(string memory _item, string[] memory _itemList) internal pure returns (bool) {
+    function checkIfPresent(string memory _item, string[] memory _itemList) internal pure returns (bool isPresent) {
         for(uint256 i = 0; i < _itemList.length; i++) {
             if(keccak256(bytes(_itemList[i])) == keccak256(bytes(_item))) {
-                return true;
+                isPresent = true;
+                break;
             } else {
-                return false;
+                isPresent = false;
+                break;
             }
         }
+
+        return isPresent;
     }
 }
