@@ -5,6 +5,7 @@ import {Member} from "contracts/types/Member.sol";
 import {Vote} from "contracts/types/Vote.sol";
 import {Proposal, ProposalType} from "contracts/types/Proposal.sol";
 import {IWGovernance} from "contracts/interfaces/IWGovernance.sol";
+import {IWorkHub} from "contracts/interfaces/IWorkHub.sol";
 
 contract WGovernance is IWGovernance {
 
@@ -12,6 +13,8 @@ contract WGovernance is IWGovernance {
     uint256 requiredStake;
     uint256 membersCount;
     uint256 govReserve;
+
+    IWorkHub public iWorkHubContract;
     
     mapping(address => Member) members;
     mapping(bytes32 => Proposal) proposals;
@@ -19,18 +22,18 @@ contract WGovernance is IWGovernance {
     uint256[] votesIds;
     mapping(uint256 => Vote) votes;
 
-
-
     constructor(
         uint256 _currentFee,
         uint256 _requiredStake,
         uint256 _membersCount,
-        uint256 _govReserve
+        uint256 _govReserve,
+        address _iWorkHubContract
     ) payable {
         currentFee = _currentFee;
         requiredStake = _requiredStake;
         membersCount = _membersCount;
         govReserve = _govReserve; 
+        iWorkHubContract = IWorkHub(_iWorkHubContract);
 
         members[msg.sender] = Member(msg.sender, msg.value);
     }
@@ -51,13 +54,13 @@ contract WGovernance is IWGovernance {
 
     // @inheritdoc: IWGovernance
     function joinGovernance() external payable override {
-        require(msg.value <= requiredStake, "Invalid Ammount");
+        require(msg.value >= requiredStake, "Invalid Ammount");
 
         if (msg.sender == members[msg.sender].memberAddress) {
             revert AlreadyJoined();
         }
 
-        govReserve += requiredStake;
+        govReserve += msg.value;
 
         Member memory newMember = Member(msg.sender, msg.value);
         members[msg.sender] = newMember;
@@ -65,7 +68,7 @@ contract WGovernance is IWGovernance {
         membersCount++;
 
         // @inheritdoc: IWGovernance
-        emit joinedDao(members[msg.sender]);
+        emit newMemberJoined(msg.sender);
     }
 
     // @inheritdoc: IWGovernance
@@ -75,12 +78,14 @@ contract WGovernance is IWGovernance {
         }
 
         uint256 amountToTransfer = members[msg.sender].amountStk;
+        address removedMemberAddress = members[msg.sender].memberAddress;
         govReserve -= amountToTransfer;
-        // @inheritdoc: IWGovernance
-        emit leavedDao(members[msg.sender]);
 
         delete members[msg.sender];
         payable(msg.sender).transfer(amountToTransfer);
+
+        // @inheritdoc: IWGovernance
+        emit memberLeaved(removedMemberAddress);
     }
 
     // @inheritdoc: IWGovernance
@@ -169,6 +174,8 @@ contract WGovernance is IWGovernance {
 
         if (proposals[_proposalId].numberOfVotes == membersCount) {
             completeProposal(_proposalId);
+        } else {
+            emit proposalVoted(msg.sender, _proposalId);
         }
     }
 
@@ -202,8 +209,8 @@ contract WGovernance is IWGovernance {
             } else if (proposal.proposaType == ProposalType.SkillsUpdate) {
                 // TODO - Do the update in the WorkHub.sol
             }
-            emit proposalAccepted(proposal);
-        } else { emit proposalRefused(proposal); }
+            emit proposalAccepted(_proposalId);
+        } else { emit proposalRefused(_proposalId); }
         
         // deleting the proposal after the completion.
         delete proposals[_proposalId]; 
@@ -277,14 +284,21 @@ contract WGovernance is IWGovernance {
 
     // @param _newJobCategory is the string that will be added to the array
     // of job  category in the WorkHub contract.
-    function updateWorkHubJobs(string memory _newJobCategory) internal {
+    function newWorkHubJob(string memory _newJobCategory) internal {
+        iWorkHubContract.addToJobCategory(_newJobCategory);
+    }
 
+    function removeWorkHubJob(string memory _jobCategoryToRemove) internal {
+        iWorkHubContract.removeFromJobCategory(_jobCategoryToRemove);
     }
 
     // @param _newSkill will be added to the array of skills in the
     // WorkHub contract.
-    function updateWorkHubSkills(string memory _newSkill) internal {
-
+    function newWorkHubSkill(string memory _newSkill) internal {
+        iWorkHubContract.addToSkills(_newSkill);
     }
 
+    function removeWorkHubSkill(string memory _skillToRemove) internal {
+        iWorkHubContract.removeFromSkills(_skillToRemove);
+    }
 }

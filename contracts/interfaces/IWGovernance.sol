@@ -7,48 +7,44 @@ import {Member} from "contracts/types/Member.sol";
 
 interface IWGovernance {
 
-    event joinedDao (
-        Member indexed member
+    event newMemberJoined (
+        address indexed  member
     );
 
-    event leavedDao (
-        Member indexed member
+    event memberLeaved (
+        address indexed  member
     );
 
     event proposalCreated (
-        Member indexed creator,
-        Proposal proposal
+        address creator
     );
 
     event proposalVoted (
-        Member indexed voter,
-        Proposal proposal
+        address voter,
+        bytes32 proposalId
     );
 
     event proposalAccepted (
-        Proposal proposal
+        bytes32 proposalId
     );
 
     event proposalRefused (
-        Proposal proposal
+        bytes32 proposalId
     );    
 
     event feeRateChanged (
-        uint256 newFee,
-        Proposal proposal
+        uint256 newFee
     );
 
     event jobCategoryUpdated(
-        string newCategory,
-        string[] updatedCatList
+        string newCategory
     );
 
     event skillsUpdated(
-        string newSkill,
-        string[] updateSkillList
+        string newSkill
     );
 
-    //@notice: When the requirements to become a member changes;
+    // @notice: When the requirements to become a member changes;
     event membershipReqChanged (
         uint256 stakingReq
     );
