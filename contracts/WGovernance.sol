@@ -12,9 +12,14 @@ contract WGovernance is IWGovernance {
     uint256 requiredStake;
     uint256 membersCount;
     uint256 govReserve;
-
+    
     mapping(address => Member) members;
     mapping(bytes32 => Proposal) proposals;
+
+    uint256[] votesIds;
+    mapping(uint256 => Vote) votes;
+
+
 
     constructor(
         uint256 _currentFee,
@@ -37,9 +42,9 @@ contract WGovernance is IWGovernance {
     // the members already voted.
     modifier validateNewVoter(bytes32 _proposalId) {
 
-        require(!hasVoted(_proposalId, msg.sender),
+        require(!hasVoted(msg.sender),
         "Already voted to this proposal.");
-        require(proposals[_proposalId].voters.length < membersCount,
+        require(proposals[_proposalId].numberOfVotes < membersCount,
         "All the members have voted");
         _;
     }
@@ -105,15 +110,14 @@ contract WGovernance is IWGovernance {
             "Invalid proposal type"
         );
 
-        Vote[] memory initialVoters;
         Proposal memory newProposal = Proposal({
             id: generatePropId(),
             creator: msg.sender,
-            voters: initialVoters,
             proposaType: _proposalType,
             votingPeriod: _votingPeriod,
             startingPeriod: block.timestamp,
             endingPeriod: block.timestamp + _votingPeriod,
+            numberOfVotes: 0,
             memberRem: address(0),
             feeUpdate: 0,
             stkUpdate: 0,
@@ -153,13 +157,17 @@ contract WGovernance is IWGovernance {
         );
 
         Vote memory newVote = Vote({
+            proposalId: _proposalId,
             member: msg.sender,
             vote: _vote
         });
 
-        proposals[_proposalId].voters.push(newVote);
+        uint256 newId = votesIds.length;
+        votes[newId += 1] = newVote;
 
-        if (proposals[_proposalId].voters.length == membersCount) {
+        votesIds.push(newId++);
+
+        if (proposals[_proposalId].numberOfVotes == membersCount) {
             completeProposal(_proposalId);
         }
     }
@@ -173,9 +181,9 @@ contract WGovernance is IWGovernance {
         uint256 falseVotes = 0;
 
         Proposal memory proposal = proposals[_proposalId];
-        
-        for (uint256 i = 0; i < proposal.voters.length; i++) {
-            if (proposal.voters[i].vote) {
+
+        for (uint256 i = 0; i < votesIds.length; i++) {
+            if (votes[i].vote) {
                 trueVotes++;
             } else {
                 falseVotes++;
@@ -252,12 +260,12 @@ contract WGovernance is IWGovernance {
     // for that specific proposal. 
     // @param _proposalId will be reponsable to find the Proposal in the mapping.
     // @param _voter is the voter to be validated.
-    function hasVoted(bytes32 _proposalId, address _voter) internal view returns (bool) {
-        Vote[] memory voters = proposals[_proposalId].voters;
-        for (uint256 i = 0; i < voters.length; i++) {
-            if (voters[i].member == _voter){
-                return true;
-            }
+    function hasVoted(address _voter) internal view returns (bool) {
+
+         uint256 newId = votesIds.length;
+
+        if (votes[newId++].member == _voter) {
+            return true;
         }
         return false;
     }

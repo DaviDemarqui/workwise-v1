@@ -14,11 +14,11 @@ enum ProposalType {
 struct Proposal {
     bytes32 id;
     address creator;
-    Vote[] voters; // Also used to count votes;
     ProposalType proposaType;
     uint256 votingPeriod;
     uint256 startingPeriod;
     uint256 endingPeriod;
+    uint256 numberOfVotes;
     // Used in proposal
     address memberRem;
     uint256 feeUpdate;
