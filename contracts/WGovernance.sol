@@ -9,33 +9,26 @@ import {IWorkHub} from "contracts/interfaces/IWorkHub.sol";
 
 contract WGovernance is IWGovernance {
 
-    uint256 currentFee;
-    uint256 requiredStake;
-    uint256 membersCount;
-    uint256 govReserve;
+    uint256 currentFee = 1;
+    uint256 requiredStake = 0;
+    uint256 membersCount = 0;
+    uint256 govReserve = 0;
 
     IWorkHub public iWorkHubContract;
     
-    mapping(address => Member) members;
+    mapping(address => Member) public members;
     mapping(bytes32 => Proposal) proposals;
 
     uint256[] votesIds;
     mapping(uint256 => Vote) votes;
 
     constructor(
-        uint256 _currentFee,
-        uint256 _requiredStake,
-        uint256 _membersCount,
-        uint256 _govReserve,
         address _iWorkHubContract
     ) payable {
-        currentFee = _currentFee;
-        requiredStake = _requiredStake;
-        membersCount = _membersCount;
-        govReserve = _govReserve; 
         iWorkHubContract = IWorkHub(_iWorkHubContract);
-
         members[msg.sender] = Member(msg.sender, msg.value);
+        membersCount++;
+        govReserve = msg.value;
     }
 
     // @param _proposalId inform what proposal we're working
@@ -145,7 +138,11 @@ contract WGovernance is IWGovernance {
         }
 
         proposals[newProposal.id] = newProposal;
+
+        emit proposalCreated(msg.sender);
     }
+
+    // TODO - Check the voting period when voting
 
     // @inheritdoc: IWGovernance
     // @param _proposalId is used to find the Proposal and also validade if
