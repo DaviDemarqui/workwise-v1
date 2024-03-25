@@ -9,14 +9,14 @@ import {IWorkHub} from "contracts/interfaces/IWorkHub.sol";
 
 contract WGovernance is IWGovernance {
 
-    uint256 currentFee = 1;
-    uint256 requiredStake = 0;
-    uint256 membersCount = 0;
-    uint256 govReserve = 0;
+    uint256 currentFee;
+    uint256 requiredStake;
+    uint256 membersCount;
+    uint256 govReserve;
 
     IWorkHub public iWorkHubContract;
     
-    mapping(address => Member) public members;
+    mapping(address => Member) members;
     mapping(bytes32 => Proposal) proposals;
 
     uint256[] votesIds;
@@ -34,20 +34,20 @@ contract WGovernance is IWGovernance {
     // @param _proposalId inform what proposal we're working
     // with to find it in the mapping.
     // @notice this modifier is used to validate if the user
-    // already voted to the informed proposal and if all
-    // the members already voted.
+    // already voted to the informed proposal
     modifier validateNewVoter(bytes32 _proposalId) {
-
-        require(!hasVoted(msg.sender),
-        "Already voted to this proposal.");
-        require(proposals[_proposalId].numberOfVotes < membersCount,
-        "All the members have voted");
+        if(hasVoted(msg.sender)) {
+            revert AlreadyVoted();
+        }
         _;
     }
 
     // @inheritdoc: IWGovernance
     function joinGovernance() external payable override {
-        require(msg.value >= requiredStake, "Invalid Ammount");
+
+        if(msg.value < requiredStake) {
+            revert InvalidEthAmount();
+        }
 
         if (msg.sender == members[msg.sender].memberAddress) {
             revert AlreadyJoined();
@@ -55,8 +55,7 @@ contract WGovernance is IWGovernance {
 
         govReserve += msg.value;
 
-        Member memory newMember = Member(msg.sender, msg.value);
-        members[msg.sender] = newMember;
+        members[msg.sender] = Member(msg.sender, msg.value);
 
         membersCount++;
 
@@ -66,6 +65,7 @@ contract WGovernance is IWGovernance {
 
     // @inheritdoc: IWGovernance
     function leaveGovernance() external override {
+
         if (msg.sender == members[msg.sender].memberAddress) {
             revert MemberDoestExist();
         }
@@ -98,15 +98,13 @@ contract WGovernance is IWGovernance {
         string memory _categUpdate,
         string memory _skillUpdate
     ) public override {
-        require(_votingPeriod > 0, "Voting period must be greater than 0");
-        require(
-            _proposalType == ProposalType.MemberRem ||
-                _proposalType == ProposalType.FeeUpdate ||
-                _proposalType == ProposalType.StkUpdate ||
-                _proposalType == ProposalType.CategUpdate ||
-                _proposalType == ProposalType.SkillsUpdate,
-            "Invalid proposal type"
-        );
+
+        if (_proposalType != ProposalType.MemberRem ||
+            _proposalType != ProposalType.FeeUpdate ||
+            _proposalType != ProposalType.StkUpdate ||
+            _proposalType != ProposalType.CategUpdate ||
+            _proposalType != ProposalType.SkillsUpdate 
+        ) { revert InvalidProposalType(); }
 
         Proposal memory newProposal = Proposal({
             id: generatePropId(),
@@ -149,25 +147,17 @@ contract WGovernance is IWGovernance {
     // the sender already voted to the chosen proposal.
     // @param _vote is used to set the user vote in the Vote struct.
     function voteForProposal(bytes32 _proposalId, bool _vote) external virtual override validateNewVoter(_proposalId) {
-        require(
-            members[msg.sender].memberAddress != address(0), 
-            "Sender is not a Governance member"
-        );
-        require(
-            proposals[_proposalId].creator != msg.sender,
-            "The creator of the proposal can't vote"
-        );
+        
+        if (members[msg.sender].memberAddress == address(0)) {
+            revert SenderIsNotAMember();
+        }
+        if (proposals[_proposalId].creator == msg.sender) {
+            revert ProposalCreatorCantVote();
+        }
 
-        Vote memory newVote = Vote({
-            proposalId: _proposalId,
-            member: msg.sender,
-            vote: _vote
-        });
-
-        uint256 newId = votesIds.length;
-        votes[newId += 1] = newVote;
-
-        votesIds.push(newId++);
+        uint256 currentId = votesIds.length; 
+        votes[currentId++] = Vote({ proposalId: _proposalId,member: msg.sender,vote: _vote});
+        votesIds.push(currentId++);
 
         if (proposals[_proposalId].numberOfVotes == membersCount) {
             completeProposal(_proposalId);
@@ -184,8 +174,6 @@ contract WGovernance is IWGovernance {
         uint256 trueVotes = 0;
         uint256 falseVotes = 0;
 
-        Proposal memory proposal = proposals[_proposalId];
-
         for (uint256 i = 0; i < votesIds.length; i++) {
             if (votes[i].vote) {
                 trueVotes++;
@@ -195,7 +183,8 @@ contract WGovernance is IWGovernance {
         }
 
         if (trueVotes > falseVotes) {
-             if (proposal.proposaType == ProposalType.MemberRem) {
+            Proposal memory proposal = proposals[_proposalId];
+            if (proposal.proposaType == ProposalType.MemberRem) {
                 removeMember(proposal.memberRem);
             } else if (proposal.proposaType == ProposalType.FeeUpdate) {
                 updateFeeRate(proposal.feeUpdate);

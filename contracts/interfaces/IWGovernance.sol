@@ -53,6 +53,10 @@ interface IWGovernance {
     error MemberDoestExist();
     error ProposalExistent();
     error AlreadyVoted();
+    error InvalidEthAmount();
+    error InvalidProposalType();
+    error ProposalCreatorCantVote();
+    error SenderIsNotAMember();
 
     function joinGovernance() payable external;
 
