@@ -95,8 +95,8 @@ contract WGovernance is IWGovernance {
         address _memberRem,
         uint256 _feeUpdate,
         uint256 _stkUpdate,
-        string memory _categUpdate,
-        string memory _skillUpdate
+        string calldata _categUpdate,
+        string calldata _skillUpdate
     ) public override {
 
         if (_proposalType != ProposalType.MemberRem ||
@@ -218,16 +218,6 @@ contract WGovernance is IWGovernance {
     }
 
     // @inheritdoc: IWGovernance
-    // @param _newCat indicated the new categorie that is about to be created
-    function updateJobCategories(
-        string memory _newCat
-    ) internal virtual {}
-
-    // @inheritdoc: IWGovernance
-    // @param _newSkill indicates the skill that is about to be created
-    function updateSkills(string memory _newSkill) internal virtual {}
-
-    // @inheritdoc: IWGovernance
     // @param _member indicates the member that is about to be removed from the governance
     function removeMember(address _member) internal virtual {
         uint256 amountStk = members[_member].amountStk;
@@ -270,21 +260,21 @@ contract WGovernance is IWGovernance {
 
     // @param _newJobCategory is the string that will be added to the array
     // of job  category in the WorkHub contract.
-    function newWorkHubJob(string memory _newJobCategory) internal {
+    function newWorkHubJob(string calldata _newJobCategory) internal {
         iWorkHubContract.addToJobCategory(_newJobCategory);
     }
 
-    function removeWorkHubJob(string memory _jobCategoryToRemove) internal {
+    function removeWorkHubJob(string calldata _jobCategoryToRemove) internal {
         iWorkHubContract.removeFromJobCategory(_jobCategoryToRemove);
     }
 
     // @param _newSkill will be added to the array of skills in the
     // WorkHub contract.
-    function newWorkHubSkill(string memory _newSkill) internal {
+    function newWorkHubSkill(string calldata _newSkill) internal {
         iWorkHubContract.addToSkills(_newSkill);
     }
 
-    function removeWorkHubSkill(string memory _skillToRemove) internal {
+    function removeWorkHubSkill(string calldata _skillToRemove) internal {
         iWorkHubContract.removeFromSkills(_skillToRemove);
     }
 }
