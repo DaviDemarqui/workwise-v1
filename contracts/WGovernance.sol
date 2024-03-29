@@ -114,26 +114,12 @@ contract WGovernance is IWGovernance {
             startingPeriod: block.timestamp,
             endingPeriod: block.timestamp + _votingPeriod,
             numberOfVotes: 0,
-            memberRem: address(0),
-            feeUpdate: 0,
-            stkUpdate: 0,
-            categUpdate: "",
-            skillUpdate: ""
+            memberRem: _proposalType == ProposalType.MemberRem ? _memberRem : address(0),
+            feeUpdate: _proposalType == ProposalType.FeeUpdate ? _feeUpdate : 0,
+            stkUpdate:  _proposalType == ProposalType.StkUpdate ? _stkUpdate : 0,
+            categUpdate:  _proposalType == ProposalType.CategUpdate ? _categUpdate : "",
+            skillUpdate: _proposalType == ProposalType.SkillsUpdate ? _skillUpdate : ""
         });
-
-        // @notice feeding the Proposal accordingly to the
-        // _proposalType chosen.
-        if (_proposalType == ProposalType.MemberRem) {
-            newProposal.memberRem = _memberRem;
-        } else if (_proposalType == ProposalType.FeeUpdate) {
-            newProposal.feeUpdate = _feeUpdate;
-        } else if (_proposalType == ProposalType.StkUpdate) {
-            newProposal.stkUpdate = _stkUpdate;
-        } else if (_proposalType == ProposalType.CategUpdate) {
-            newProposal.categUpdate = _categUpdate;
-        } else if (_proposalType == ProposalType.SkillsUpdate) {
-            newProposal.skillUpdate = _skillUpdate;
-        }
 
         proposals[newProposal.id] = newProposal;
 
