@@ -31,8 +31,6 @@ contract WGovernance is IWGovernance {
         govReserve = msg.value;
     }
 
-    // @param _proposalId inform what proposal we're working
-    // with to find it in the mapping.
     // @notice this modifier is used to validate if the user
     // already voted to the informed proposal
     modifier validateNewVoter(bytes32 _proposalId) {
@@ -82,13 +80,6 @@ contract WGovernance is IWGovernance {
     }
 
     // @inheritdoc: IWGovernance
-    // @param _proposalType chosen by the member to define the type of the proposal
-    // @param _votingPeriod used to determinate the period and calculate the endingPeriod
-    // @param _memberRem indicate the member that will be removed based on the _votingPeriod
-    // @param _feeUpdate indicate the new value for currentFee based on the _votingPeriod
-    // @param _stkUpdate indicate the new requiredStake to become a member based on _votingPeriod
-    // @param _categUpdate indicate the category to be added based on _votingPeriod
-    // @param _skillUpdate indicate the skil to be added based on _votingPeriod
     function createProposal(
         ProposalType _proposalType,
         uint256 _votingPeriod,
@@ -110,7 +101,6 @@ contract WGovernance is IWGovernance {
             id: generatePropId(),
             creator: msg.sender,
             proposaType: _proposalType,
-            votingPeriod: _votingPeriod,
             startingPeriod: block.timestamp,
             endingPeriod: block.timestamp + _votingPeriod,
             numberOfVotes: 0,
@@ -126,12 +116,7 @@ contract WGovernance is IWGovernance {
         emit proposalCreated(msg.sender);
     }
 
-    // TODO - Check the voting period when voting
-
     // @inheritdoc: IWGovernance
-    // @param _proposalId is used to find the Proposal and also validade if
-    // the sender already voted to the chosen proposal.
-    // @param _vote is used to set the user vote in the Vote struct.
     function voteForProposal(bytes32 _proposalId, bool _vote) external virtual override validateNewVoter(_proposalId) {
         
         if (members[msg.sender].memberAddress == address(0)) {
@@ -139,6 +124,9 @@ contract WGovernance is IWGovernance {
         }
         if (proposals[_proposalId].creator == msg.sender) {
             revert ProposalCreatorCantVote();
+        }
+        if (proposals[_proposalId].endingPeriod == block.timestamp) {
+            completeProposal(_proposalId); // complete proposal automatically
         }
 
         uint256 currentId = votesIds.length; 
@@ -153,13 +141,12 @@ contract WGovernance is IWGovernance {
     }
 
     // @inheritdoc: IWGovernance
-    // @param _proposalId is used to get the proposal and deleted after
-    // the competion of the process.
     function completeProposal(bytes32 _proposalId) public virtual override {
         
         uint256 trueVotes = 0;
         uint256 falseVotes = 0;
 
+        // Counting the votes
         for (uint256 i = 0; i < votesIds.length; i++) {
             if (votes[i].vote) {
                 trueVotes++;
@@ -177,34 +164,31 @@ contract WGovernance is IWGovernance {
             } else if (proposal.proposaType == ProposalType.StkUpdate) {
                 updateStakeReq(proposal.stkUpdate);
             } else if (proposal.proposaType == ProposalType.CategUpdate) {
-                // TODO - Do the update in the WorkHub.sol
+                updateWorkHubCategory(proposal.categUpdate);
             } else if (proposal.proposaType == ProposalType.SkillsUpdate) {
-                // TODO - Do the update in the WorkHub.sol
+                updateWorkHubSkill(proposal.skillUpdate);
             }
+            delete proposals[_proposalId]; 
             emit proposalAccepted(_proposalId);
-        } else { emit proposalRefused(_proposalId); }
-        
-        // deleting the proposal after the completion.
-        delete proposals[_proposalId]; 
+        } else {
+            delete proposals[_proposalId]; 
+            emit proposalRefused(_proposalId); 
+        }
     }
 
     // @inheritdoc: IWGovernance
-    // @param _newFee will be the current fee rate through jobs payments
     function updateFeeRate(uint256 _newFee) internal virtual {
         require(_newFee != 0, "The fee cannot be 0");
         currentFee = _newFee;
     }
 
     // @inheritdoc: IWGovernance
-    // @param _newStk will be the current staking requirement for a new
-    // user entrance to the governance membership.
     function updateStakeReq(uint256 _newStk) internal virtual {
         require(_newStk != 0, "The stake cannot be zero");
         requiredStake = _newStk;
     }
 
     // @inheritdoc: IWGovernance
-    // @param _member indicates the member that is about to be removed from the governance
     function removeMember(address _member) internal virtual {
         uint256 amountStk = members[_member].amountStk;
         delete members[_member];
@@ -212,7 +196,6 @@ contract WGovernance is IWGovernance {
         payable(_member).transfer(amountStk);
     }
 
-    // @param _member will be used to generate a unique id for the Proposal
     // @notice using the address of the sender and the blockhash to generate
     // a unique identifier for the proposal.
     function generatePropId() internal returns (bytes32 gId) {
@@ -227,8 +210,6 @@ contract WGovernance is IWGovernance {
 
     // @notice this function is used to validate if the voter has already voted
     // for that specific proposal. 
-    // @param _proposalId will be reponsable to find the Proposal in the mapping.
-    // @param _voter is the voter to be validated.
     function hasVoted(address _voter) internal view returns (bool) {
 
          uint256 newId = votesIds.length;
@@ -241,26 +222,12 @@ contract WGovernance is IWGovernance {
 
     // ----------------------------------------------------------------------
 
-    // The functions below are going to update the arrays of "jobCategories"
-    // and "availableSkills" in the WorkHub.sol contract.
+    // @notice these functions below are going to call WorkHub to update the 
+    // Skills or Category arrays
+    function updateWorkHubCategory(string memory _category) internal {
 
-    // @param _newJobCategory is the string that will be added to the array
-    // of job  category in the WorkHub contract.
-    function newWorkHubJob(string calldata _newJobCategory) internal {
-        iWorkHubContract.addToJobCategory(_newJobCategory);
     }
+    function updateWorkHubSkill(string memory _skill) internal {
 
-    function removeWorkHubJob(string calldata _jobCategoryToRemove) internal {
-        iWorkHubContract.removeFromJobCategory(_jobCategoryToRemove);
-    }
-
-    // @param _newSkill will be added to the array of skills in the
-    // WorkHub contract.
-    function newWorkHubSkill(string calldata _newSkill) internal {
-        iWorkHubContract.addToSkills(_newSkill);
-    }
-
-    function removeWorkHubSkill(string calldata _skillToRemove) internal {
-        iWorkHubContract.removeFromSkills(_skillToRemove);
     }
 }
