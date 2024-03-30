@@ -5,27 +5,27 @@ import {Member} from "contracts/types/Member.sol";
 import {Vote} from "contracts/types/Vote.sol";
 import {Proposal, ProposalType} from "contracts/types/Proposal.sol";
 import {IWGovernance} from "contracts/interfaces/IWGovernance.sol";
-import {IWorkHub} from "contracts/interfaces/IWorkHub.sol";
+import {WorkHub} from "contracts/WorkHub.sol";
 
 contract WGovernance is IWGovernance {
 
-    uint256 currentFee;
-    uint256 requiredStake;
-    uint256 membersCount;
-    uint256 govReserve;
+    uint256 public currentFee;
+    uint256 public requiredStake;
+    uint256 public membersCount;
+    uint256 public govReserve;
 
-    IWorkHub public iWorkHubContract;
+    WorkHub public workHubContract;
     
-    mapping(address => Member) members;
-    mapping(bytes32 => Proposal) proposals;
+    mapping(address => Member) public members;
+    mapping(bytes32 => Proposal) public proposals;
 
     uint256[] votesIds;
     mapping(uint256 => Vote) votes;
 
     constructor(
-        address _iWorkHubContract
+        address _workHubContract
     ) payable {
-        iWorkHubContract = IWorkHub(_iWorkHubContract);
+        workHubContract = WorkHub(_workHubContract);
         members[msg.sender] = Member(msg.sender, msg.value);
         membersCount++;
         govReserve = msg.value;
@@ -40,10 +40,15 @@ contract WGovernance is IWGovernance {
         _;
     }
 
+    function getMember(address member) public view returns (Member memory) {
+        return members[member];
+    }
+
     // @inheritdoc: IWGovernance
     function joinGovernance() external payable override {
 
-        if(msg.value < requiredStake) {
+        if(msg.value < requiredStake || msg.value > requiredStake) {
+            // @inheritdoc: IWGovernance
             revert InvalidEthAmount();
         }
 

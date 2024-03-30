@@ -15,7 +15,6 @@ struct Proposal {
     bytes32 id;
     address creator;
     ProposalType proposaType;
-    uint256 votingPeriod;
     uint256 startingPeriod;
     uint256 endingPeriod;
     uint256 numberOfVotes;
