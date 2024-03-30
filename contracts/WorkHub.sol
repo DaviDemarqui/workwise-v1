@@ -2,13 +2,69 @@
 pragma solidity ^0.8.24;
 
 import {IWorkHub} from "contracts/interfaces/IWorkHub.sol";
+import {WGovernance} from "contracts/WGovernance.sol";
+import {Freelancer} from "contracts/types/Freelancer.sol";
+import {Job} from "contracts/types/Job.sol";
 
 contract WorkHub is IWorkHub {
 
-    string[] jobCategories;
-    string[] availableSkills;
-    constructor() {
-        
+    address owner;
+
+    WGovernance public wGovernance;
+
+    string[] public jobCategories;
+    string[] public availableSkills;
+
+    mapping(address => Freelancer) public freelancers;
+
+    constructor(address _owner) {
+        owner = _owner;
+        wGovernance = new WGovernance(address(this));
+    }   
+
+    // @inheritdoc: IWorkHub
+    function createFreelancer(Freelancer memory _freelancer) override public {
+
+        // Validating the freelancer skills
+        for (uint256 i = 0; i < _freelancer.skills.length; i++) {
+            if(checkIfPresent(_freelancer.skills[i], availableSkills) == false) {
+                break;
+                revert SkillNotFound(_freelancer.skills[i]);
+            }
+        }
+
+        // Validating the jobPoints
+        if(_freelancer.jobPoints > 0) {
+            _freelancer.jobPoints = 0;
+        }
+
+        freelancers[_freelancer.freelancerAddress] = _freelancer;
+    }
+
+    // @inheritdoc: IWorkHub
+    function deleteFreelancer(address _freelancer) override public {
+        // TODO - Before delete it mush check if the freelancer has
+        // jobs to complete.
+    }
+
+    // @inheritdoc: IWorkHub
+    function assignToJob(bytes32 _jobId, address _freelancer) override public {
+
+    }
+
+    // @inheritdoc: IWorkHub
+    function createJob(Job memory _job) override public {
+
+    }
+
+    // @inheritdoc: IWorkHub
+    function deleteJob(bytes32 _jobId) override public {
+
+    }
+
+    // @inheritdoc: IWorkHub
+    function completeJob(bytes32 _jobId) override public {
+
     }
 
 
