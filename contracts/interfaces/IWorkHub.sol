@@ -10,10 +10,17 @@ interface IWorkHub {
     event skillRemoved();
     event jobCategoryAdded();
     event jobCategoryRemoved();
+    event jobDeleted();
+    event jobCompleted();
+    event freelancerAssigned(bytes32 _job, address _freelancer);
 
     error SkillAlreadyExists();
     error SkillNotFound(string _skill);
+    error InvalidJobCreation(Job _job);
     error JobCategoryAlreadyExists();
+    error JobAlreadyAssignedToFreelancer();
+    error NotTheOwnerOfTheJob(address _sender);
+    error CannotDeleteWhileWorking();
 
     function createFreelancer(Freelancer memory _freelancer) external;
 

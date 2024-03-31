@@ -9,4 +9,5 @@ struct Job {
     string category;
     address assignedFreelancer;
     uint256 jobValue;
+    bool completed;
 }

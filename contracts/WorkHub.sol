@@ -15,6 +15,7 @@ contract WorkHub is IWorkHub {
     string[] public jobCategories;
     string[] public availableSkills;
 
+    mapping(bytes32 => Job) public jobs;
     mapping(address => Freelancer) public freelancers;
 
     constructor(address _owner) {
@@ -28,7 +29,6 @@ contract WorkHub is IWorkHub {
         // Validating the freelancer skills
         for (uint256 i = 0; i < _freelancer.skills.length; i++) {
             if(checkIfPresent(_freelancer.skills[i], availableSkills) == false) {
-                break;
                 revert SkillNotFound(_freelancer.skills[i]);
             }
         }
@@ -49,17 +49,39 @@ contract WorkHub is IWorkHub {
 
     // @inheritdoc: IWorkHub
     function assignToJob(bytes32 _jobId, address _freelancer) override public {
+        
+        Job memory job = jobs[_jobId]; 
+        if (job.assignedFreelancer == _freelancer) {
+            revert JobAlreadyAssignedToFreelancer();
+        }
 
+        job.assignedFreelancer = _freelancer;
+        jobs[_jobId] = job;
+
+        emit freelancerAssigned(_jobId, _freelancer);
     }
 
     // @inheritdoc: IWorkHub
     function createJob(Job memory _job) override public {
 
+        if (_job.jobValue == 0 || _job.completed == false) {
+            revert InvalidJobCreation(_job);
+        }
+
+        // TODO - Buid a library to generate ids;
     }
 
     // @inheritdoc: IWorkHub
     function deleteJob(bytes32 _jobId) override public {
+        // Checking if the job is assigned to a freelancer and competed
+        // before deleting.
+        if (jobs[_jobId].assignedFreelancer != address(0) && 
+            jobs[_jobId].completed == false) {
+            revert CannotDeleteWhileWorking();
+        } 
 
+        delete jobs[_jobId];
+        emit jobDeleted();
     }
 
     // @inheritdoc: IWorkHub
