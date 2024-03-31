@@ -5,11 +5,11 @@ import {IWorkHub} from "contracts/interfaces/IWorkHub.sol";
 import {WGovernance} from "contracts/WGovernance.sol";
 import {Freelancer} from "contracts/types/Freelancer.sol";
 import {Job} from "contracts/types/Job.sol";
+import {IdGenerator} from "contracts/library/IdGenerator.sol";
 
 contract WorkHub is IWorkHub {
 
     address owner;
-
     WGovernance public wGovernance;
 
     string[] public jobCategories;
@@ -62,13 +62,26 @@ contract WorkHub is IWorkHub {
     }
 
     // @inheritdoc: IWorkHub
-    function createJob(Job memory _job) override public {
+    function createJob(Job memory _job) override payable public {
 
+        // Validating the job data
         if (_job.jobValue == 0 || _job.completed == false) {
             revert InvalidJobCreation(_job);
         }
+        else if (_job.jobValue != msg.value) {
+            revert InvalidJobCreation(_job);
+        }
+        // Validating category of the job
+        else if (checkIfPresent(_job.category, jobCategories) == false) {
+            revert InvalidJobCreation(_job);
+        } 
 
-        // TODO - Buid a library to generate ids;
+        // @notice: Using the IdGenerator library to
+        // generate an unique id for this _Job
+        _job.id = IdGenerator.generateId(msg.sender);
+        jobs[_job.id] = _job; 
+
+        emit jobCreated(_job);
     }
 
     // @inheritdoc: IWorkHub
@@ -80,13 +93,31 @@ contract WorkHub is IWorkHub {
             revert CannotDeleteWhileWorking();
         } 
 
+        address jobCreator = jobs[_jobId].creator;
+        uint256 jobValue = jobs[_jobId].jobValue;
+
         delete jobs[_jobId];
+
+        // Paying the creator back
+        payable(jobCreator).transfer(jobValue);
         emit jobDeleted();
     }
 
     // @inheritdoc: IWorkHub
     function completeJob(bytes32 _jobId) override public {
 
+        Job memory job = jobs[_jobId];
+
+        if (job.creator != msg.sender) {
+            revert NotTheOwnerOfTheJob(msg.sender);
+        }
+
+        job.completed = true;
+        jobs[_jobId] = job; // Completing the job
+
+        // Paying the freelancer
+        payable(job.assignedFreelancer).transfer(job.jobValue);
+        emit jobCompleted(job);
     }
 
 

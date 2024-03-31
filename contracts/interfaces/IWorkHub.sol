@@ -10,8 +10,9 @@ interface IWorkHub {
     event skillRemoved();
     event jobCategoryAdded();
     event jobCategoryRemoved();
+    event jobCreated(Job _job);
     event jobDeleted();
-    event jobCompleted();
+    event jobCompleted(Job _job);
     event freelancerAssigned(bytes32 _job, address _freelancer);
 
     error SkillAlreadyExists();
@@ -26,7 +27,7 @@ interface IWorkHub {
 
     function deleteFreelancer(address _freelancer) external;
 
-    function createJob(Job memory _job) external;
+    function createJob(Job memory _job) payable external;
 
     function deleteJob(bytes32 _jobId) external;
 

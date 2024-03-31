@@ -6,6 +6,7 @@ import {Vote} from "contracts/types/Vote.sol";
 import {Proposal, ProposalType} from "contracts/types/Proposal.sol";
 import {IWGovernance} from "contracts/interfaces/IWGovernance.sol";
 import {WorkHub} from "contracts/WorkHub.sol";
+import {IdGenerator} from "contracts/library/IdGenerator.sol";
 
 contract WGovernance is IWGovernance {
 
@@ -103,7 +104,9 @@ contract WGovernance is IWGovernance {
         ) { revert InvalidProposalType(); }
 
         Proposal memory newProposal = Proposal({
-            id: generatePropId(),
+            // @notice: using the IdGenerator library to generate
+            // an unique id;
+            id: IdGenerator.generateId(msg.sender),
             creator: msg.sender,
             proposaType: _proposalType,
             startingPeriod: block.timestamp,
@@ -201,23 +204,11 @@ contract WGovernance is IWGovernance {
         payable(_member).transfer(amountStk);
     }
 
-    // @notice using the address of the sender and the blockhash to generate
-    // a unique identifier for the proposal.
-    function generatePropId() internal returns (bytes32 gId) {
-        gId = bytes32(
-            keccak256(abi.encodePacked(msg.sender, blockhash(block.number)))
-        );
-        if (proposals[gId].id == gId) {
-            generatePropId();
-        }
-        return gId;
-    }
-
     // @notice this function is used to validate if the voter has already voted
     // for that specific proposal. 
     function hasVoted(address _voter) internal view returns (bool) {
 
-         uint256 newId = votesIds.length;
+        uint256 newId = votesIds.length;
 
         if (votes[newId++].member == _voter) {
             return true;
