@@ -9,6 +9,10 @@ import {IdGenerator} from "contracts/library/IdGenerator.sol";
 
 contract WGovernance {
 
+    //=============================
+    // --------- EVENTS -----------
+    //=============================
+
     event newMemberJoined (
         address indexed  member
     );
@@ -50,6 +54,10 @@ contract WGovernance {
     event membershipReqChanged (
         uint256 stakingReq
     );
+
+    //=============================
+    // --------- ERRORS -----------
+    //=============================
 
     error AlreadyJoined();
     error MemberDoestExist();
@@ -145,7 +153,8 @@ contract WGovernance {
         string calldata _categUpdate,
         string calldata _skillUpdate
     ) public {
-
+        // TODO - Make proposalType dynamic instead of
+        // an enum;
         if (_proposalType != ProposalType.MemberRem ||
             _proposalType != ProposalType.FeeUpdate ||
             _proposalType != ProposalType.StkUpdate ||

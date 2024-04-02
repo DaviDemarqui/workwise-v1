@@ -6,7 +6,13 @@ import {Freelancer} from "contracts/types/Freelancer.sol";
 import {Job} from "contracts/types/Job.sol";
 import {IdGenerator} from "contracts/library/IdGenerator.sol";
 
+
+// @author: DaviDemarqui
 contract WorkHub {
+
+    //=============================
+    // --------- EVENTS -----------
+    //=============================
 
     event newSkillAdded();
     event skillRemoved();
@@ -16,6 +22,10 @@ contract WorkHub {
     event jobDeleted();
     event jobCompleted(Job _job);
     event freelancerAssigned(bytes32 _job, address _freelancer);
+
+    //=============================
+    // --------- ERRORS -----------
+    //=============================
 
     error SkillAlreadyExists();
     error SkillNotFound(string _skill);
@@ -132,6 +142,7 @@ contract WorkHub {
         jobs[_jobId] = job; // Completing the job
 
         // Paying the freelancer
+        // TODO - Remember to apply platform fee
         payable(job.assignedFreelancer).transfer(job.jobValue);
         emit jobCompleted(job);
     }
