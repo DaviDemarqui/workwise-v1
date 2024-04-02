@@ -1,13 +1,29 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.24;
 
-import {IWorkHub} from "contracts/interfaces/IWorkHub.sol";
 import {WGovernance} from "contracts/WGovernance.sol";
 import {Freelancer} from "contracts/types/Freelancer.sol";
 import {Job} from "contracts/types/Job.sol";
 import {IdGenerator} from "contracts/library/IdGenerator.sol";
 
-contract WorkHub is IWorkHub {
+contract WorkHub {
+
+    event newSkillAdded();
+    event skillRemoved();
+    event jobCategoryAdded();
+    event jobCategoryRemoved();
+    event jobCreated(Job _job);
+    event jobDeleted();
+    event jobCompleted(Job _job);
+    event freelancerAssigned(bytes32 _job, address _freelancer);
+
+    error SkillAlreadyExists();
+    error SkillNotFound(string _skill);
+    error InvalidJobCreation(Job _job);
+    error JobCategoryAlreadyExists();
+    error JobAlreadyAssignedToFreelancer();
+    error NotTheOwnerOfTheJob(address _sender);
+    error CannotDeleteWhileWorking();
 
     address owner;
     WGovernance public wGovernance;
@@ -24,7 +40,7 @@ contract WorkHub is IWorkHub {
     }   
 
     // @inheritdoc: IWorkHub
-    function createFreelancer(Freelancer memory _freelancer) override public {
+    function createFreelancer(Freelancer memory _freelancer) public {
 
         // Validating the freelancer skills
         for (uint256 i = 0; i < _freelancer.skills.length; i++) {
@@ -42,13 +58,13 @@ contract WorkHub is IWorkHub {
     }
 
     // @inheritdoc: IWorkHub
-    function deleteFreelancer(address _freelancer) override public {
+    function deleteFreelancer(address _freelancer) public {
         // TODO - Before delete it mush check if the freelancer has
         // jobs to complete.
     }
 
     // @inheritdoc: IWorkHub
-    function assignToJob(bytes32 _jobId, address _freelancer) override public {
+    function assignToJob(bytes32 _jobId, address _freelancer) public {
         
         Job memory job = jobs[_jobId]; 
         if (job.assignedFreelancer == _freelancer) {
@@ -62,7 +78,7 @@ contract WorkHub is IWorkHub {
     }
 
     // @inheritdoc: IWorkHub
-    function createJob(Job memory _job) override payable public {
+    function createJob(Job memory _job) payable public {
 
         // Validating the job data
         if (_job.jobValue == 0 || _job.completed == false) {
@@ -85,7 +101,7 @@ contract WorkHub is IWorkHub {
     }
 
     // @inheritdoc: IWorkHub
-    function deleteJob(bytes32 _jobId) override public {
+    function deleteJob(bytes32 _jobId) public {
         // Checking if the job is assigned to a freelancer and competed
         // before deleting.
         if (jobs[_jobId].assignedFreelancer != address(0) && 
@@ -104,7 +120,7 @@ contract WorkHub is IWorkHub {
     }
 
     // @inheritdoc: IWorkHub
-    function completeJob(bytes32 _jobId) override public {
+    function completeJob(bytes32 _jobId) public {
 
         Job memory job = jobs[_jobId];
 
@@ -127,7 +143,7 @@ contract WorkHub is IWorkHub {
     // -----------------------------------------------------------------
 
     // @inheritdoc: IWorkHub
-    function addToSkills(string memory _newSkill) override external {
+    function addToSkills(string memory _newSkill) external {
 
         bool isPresent = checkIfPresent(_newSkill, availableSkills); 
         if(isPresent) {
@@ -140,7 +156,7 @@ contract WorkHub is IWorkHub {
     }
 
     // @inheritdoc: IWorkHub
-    function removeFromSkills(string memory _skillToDelete) override external {
+    function removeFromSkills(string memory _skillToDelete) external {
 
         uint256 skillIndex = findItemIndex(_skillToDelete, availableSkills);
         availableSkills[skillIndex] = availableSkills[availableSkills.length - 1];
@@ -150,7 +166,7 @@ contract WorkHub is IWorkHub {
     }
 
     // @inheritdoc: IWorkHub
-    function addToJobCategory(string memory _newCategory) override external {
+    function addToJobCategory(string memory _newCategory) external {
         
         bool isPresent = checkIfPresent(_newCategory, jobCategories);
         if(isPresent) {
@@ -163,7 +179,7 @@ contract WorkHub is IWorkHub {
     }
 
     // @inheritdoc: IWorkHub
-    function removeFromJobCategory(string memory _jobCatToDelete) override external {
+    function removeFromJobCategory(string memory _jobCatToDelete) external {
         
         uint256 jobIndex = findItemIndex(_jobCatToDelete, jobCategories);
         jobCategories[jobIndex] = jobCategories[jobCategories.length - 1];

@@ -4,11 +4,61 @@ pragma solidity ^0.8.24;
 import {Member} from "contracts/types/Member.sol";
 import {Vote} from "contracts/types/Vote.sol";
 import {Proposal, ProposalType} from "contracts/types/Proposal.sol";
-import {IWGovernance} from "contracts/interfaces/IWGovernance.sol";
 import {WorkHub} from "contracts/WorkHub.sol";
 import {IdGenerator} from "contracts/library/IdGenerator.sol";
 
-contract WGovernance is IWGovernance {
+contract WGovernance {
+
+    event newMemberJoined (
+        address indexed  member
+    );
+
+    event memberLeaved (
+        address indexed  member
+    );
+
+    event proposalCreated (
+        address creator
+    );
+
+    event proposalVoted (
+        address voter,
+        bytes32 proposalId
+    );
+
+    event proposalAccepted (
+        bytes32 proposalId
+    );
+
+    event proposalRefused (
+        bytes32 proposalId
+    );    
+
+    event feeRateChanged (
+        uint256 newFee
+    );
+
+    event jobCategoryUpdated(
+        string newCategory
+    );
+
+    event skillsUpdated(
+        string newSkill
+    );
+
+    // @notice: When the requirements to become a member changes;
+    event membershipReqChanged (
+        uint256 stakingReq
+    );
+
+    error AlreadyJoined();
+    error MemberDoestExist();
+    error ProposalExistent();
+    error AlreadyVoted();
+    error InvalidEthAmount();
+    error InvalidProposalType();
+    error ProposalCreatorCantVote();
+    error SenderIsNotAMember();
 
     uint256 public currentFee;
     uint256 public requiredStake;
@@ -46,7 +96,7 @@ contract WGovernance is IWGovernance {
     }
 
     // @inheritdoc: IWGovernance
-    function joinGovernance() external payable override {
+    function joinGovernance() external payable {
 
         if(msg.value < requiredStake || msg.value > requiredStake) {
             // @inheritdoc: IWGovernance
@@ -68,7 +118,7 @@ contract WGovernance is IWGovernance {
     }
 
     // @inheritdoc: IWGovernance
-    function leaveGovernance() external override {
+    function leaveGovernance() external {
 
         if (msg.sender == members[msg.sender].memberAddress) {
             revert MemberDoestExist();
@@ -94,7 +144,7 @@ contract WGovernance is IWGovernance {
         uint256 _stkUpdate,
         string calldata _categUpdate,
         string calldata _skillUpdate
-    ) public override {
+    ) public {
 
         if (_proposalType != ProposalType.MemberRem ||
             _proposalType != ProposalType.FeeUpdate ||
@@ -125,7 +175,7 @@ contract WGovernance is IWGovernance {
     }
 
     // @inheritdoc: IWGovernance
-    function voteForProposal(bytes32 _proposalId, bool _vote) external virtual override validateNewVoter(_proposalId) {
+    function voteForProposal(bytes32 _proposalId, bool _vote) external virtual validateNewVoter(_proposalId) {
         
         if (members[msg.sender].memberAddress == address(0)) {
             revert SenderIsNotAMember();
@@ -149,7 +199,7 @@ contract WGovernance is IWGovernance {
     }
 
     // @inheritdoc: IWGovernance
-    function completeProposal(bytes32 _proposalId) public virtual override {
+    function completeProposal(bytes32 _proposalId) public virtual {
         
         uint256 trueVotes = 0;
         uint256 falseVotes = 0;
